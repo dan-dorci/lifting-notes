@@ -1,7 +1,7 @@
 // Precache-all, cache-first service worker. Bump CACHE on every deploy —
 // that's the entire update mechanism (new SW installs, old cache is dropped,
 // change is live on the next launch).
-const CACHE = 'lifting-notes-v2';
+const CACHE = 'lifting-notes-v3';
 
 const ASSETS = [
   './',
@@ -19,6 +19,7 @@ const ASSETS = [
   './js/views/DaysList.js',
   './js/views/DayView.js',
   './js/views/ExerciseView.js',
+  './js/views/ProgressChart.js',
   './js/views/ExerciseEdit.js',
   './js/views/Library.js',
   './js/views/Settings.js',

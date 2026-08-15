@@ -1,5 +1,6 @@
-import { html, TopBar, navigate, setsSummary, fmtWeight, fmtReps, fmtDate, fmtTime } from '../ui.js';
+import { html, TopBar, navigate, setsSummary, fmtReps, fmtTime } from '../ui.js';
 import * as state from '../state.js';
+import { ProgressChart, ProgressLog } from './ProgressChart.js';
 
 function SetRow({ ex, set }) {
   const hit = ex.hitTopSetIds.includes(set.id);
@@ -13,26 +14,6 @@ function SetRow({ ex, set }) {
       <button class=${`check${hit ? ' on' : ''}`} aria-label="hit top of range"
         onClick=${() => state.toggleHitTop(ex.id, set.id)}>✓</button>
     </div>`;
-}
-
-function History({ ex }) {
-  const completions = state.completionsFor(ex.id);
-  if (completions.length === 0) return html`<div class="hint">No completions yet.</div>`;
-  return html`
-    ${completions.map((c, i) => {
-      const v = state.versionById(ex, c.versionId);
-      const older = completions[i + 1];
-      const changed = older && older.versionId !== c.versionId;
-      return html`
-        <div class="hist-row" key=${c.id}>
-          <div class="hist-date">${fmtDate(c.completedAt)}</div>
-          <div class="hist-rx">
-            ${v ? setsSummary(v) : '(version missing)'}
-            ${v && v.name !== state.exName(ex) && html` <span class="hint">as “${v.name}”</span>`}
-          </div>
-          ${changed && html`<span class="hist-change">changed</span>`}
-        </div>`;
-    })}`;
 }
 
 export function ExerciseView({ exId }) {
@@ -95,7 +76,8 @@ export function ExerciseView({ exId }) {
             Make this the primary
           </button>`}`}
 
-      <div class="section">History</div>
-      <${History} ex=${ex} />
+      <div class="section">Progress</div>
+      <${ProgressChart} ex=${ex} />
+      <${ProgressLog} ex=${ex} />
     </div>`;
 }

@@ -69,9 +69,13 @@ export function altSiblings(ex) {
 }
 
 export function completionsFor(exId) {
+  // Newest first; ties (same-ms timestamps) broken by insertion order, which
+  // is chronological since completions are only ever appended.
   return doc.completions
-    .filter((c) => c.exerciseId === exId)
-    .sort((a, b) => b.completedAt.localeCompare(a.completedAt));
+    .map((c, i) => [c, i])
+    .filter(([c]) => c.exerciseId === exId)
+    .sort(([a, ai], [b, bi]) => b.completedAt.localeCompare(a.completedAt) || bi - ai)
+    .map(([c]) => c);
 }
 
 const isToday = (iso) => {
