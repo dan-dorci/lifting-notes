@@ -19,6 +19,13 @@ const MAX_SESSIONS = 30;
 const GRID = '#2c2c2a';
 const AXIS_INK = '#898781';
 
+const RANGES = [
+  { key: '30', label: '30 sess' },
+  { key: '3m', label: '3M', days: 91 },
+  { key: '1y', label: '1Y', days: 365 },
+  { key: 'all', label: 'All' },
+];
+
 function yTicks(min, max) {
   const span = max - min || 10;
   const step = [1, 2.5, 5, 10, 25, 50, 100].find((s) => span / s <= 4) || 100;
@@ -32,14 +39,33 @@ function buildSessions(ex) {
     .slice()                                  // desc → asc
     .reverse()
     .map((c) => ({ c, v: state.versionById(ex, c.versionId) }))
-    .filter((s) => s.v)
-    .slice(-MAX_SESSIONS);
+    .filter((s) => s.v);
+}
+
+function inRange(all, range) {
+  if (range.days) {
+    const cutoff = new Date(Date.now() - range.days * 86400000).toISOString();
+    return all.filter((s) => s.c.completedAt >= cutoff);
+  }
+  if (range.key === '30') return all.slice(-MAX_SESSIONS);
+  return all;
 }
 
 export function ProgressChart({ ex }) {
   const [sel, setSel] = useState(null);
-  const sessions = buildSessions(ex);
-  if (sessions.length < 2) return null;
+  const [rangeKey, setRangeKey] = useState('30');
+  const all = buildSessions(ex);
+  if (all.length < 2) return null;
+  const range = RANGES.find((r) => r.key === rangeKey);
+  const sessions = inRange(all, range);
+  const pickRange = (key) => { setRangeKey(key); setSel(null); };
+  if (sessions.length < 2) {
+    return html`
+      <div class="chart-card">
+        <${RangeRow} all=${all} rangeKey=${rangeKey} onPick=${pickRange} />
+        <div class="hint" style="margin:8px 2px">Fewer than 2 sessions in this range.</div>
+      </div>`;
+  }
 
   const nSets = Math.min(MAX_SETS, Math.max(...sessions.map((s) => s.v.sets.length)));
   const weights = sessions.flatMap((s) => s.v.sets.slice(0, nSets).map((x) => x.weight));
@@ -54,6 +80,10 @@ export function ProgressChart({ ex }) {
     : mL + xPad + (i / (sessions.length - 1)) * (plotW - 2 * xPad));
   const y = (w) => mT + plotH - ((w - yMin) / (yMax - yMin)) * plotH;
   const dodge = (k) => (k - (nSets - 1) / 2) * Math.min(4, plotW / sessions.length / nSets);
+  // Dense ranges: shrink markers and let the lines carry the trend.
+  const dense = sessions.length > 45;
+  const markR = dense ? 2.5 : 4;
+  const ringW = dense ? 1 : 2;
 
   // Per-series point lists (a set position can be absent in some versions).
   const series = Array.from({ length: nSets }, (_, k) =>
@@ -82,9 +112,15 @@ export function ProgressChart({ ex }) {
   }
 
   const xLabelIdx = [...new Set([0, Math.round(last / 3), Math.round((2 * last) / 3), last])];
+  const spanDays = (new Date(sessions[last].c.completedAt) - new Date(sessions[0].c.completedAt)) / 86400000;
+  const xLabel = (iso) => new Date(iso).toLocaleDateString(undefined,
+    spanDays > 150
+      ? { month: 'short', year: spanDays > 330 ? '2-digit' : undefined }
+      : { month: 'numeric', day: 'numeric' });
 
   return html`
     <div class="chart-card">
+      <${RangeRow} all=${all} rangeKey=${rangeKey} onPick=${pickRange} />
       <div class="legend-row">
         ${series.map((_, k) => html`
           <span class="chip" key=${k}>
@@ -108,7 +144,7 @@ export function ProgressChart({ ex }) {
             fill=${AXIS_INK} style="font-variant-numeric:tabular-nums">${t}</text>`)}
         ${xLabelIdx.map((i) => html`
           <text x=${x(i)} y=${H - 6} text-anchor="middle" font-size="10" fill=${AXIS_INK}>
-            ${new Date(sessions[i].c.completedAt).toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' })}
+            ${xLabel(sessions[i].c.completedAt)}
           </text>`)}
         ${sel != null && html`
           <line x1=${x(sel)} x2=${x(sel)} y1=${mT} y2=${mT + plotH} stroke=${AXIS_INK}
@@ -117,9 +153,9 @@ export function ProgressChart({ ex }) {
           <path d=${pathFor(pts, k)} fill="none" stroke=${SERIES[k]} stroke-width="2"
             stroke-linejoin="round" stroke-linecap="round" key=${k} />`)}
         ${series.map((pts, k) => pts.map((p, i) => p && html`
-          <circle cx=${x(i) + dodge(k)} cy=${y(p.w)} r="4"
+          <circle cx=${x(i) + dodge(k)} cy=${y(p.w)} r=${markR}
             fill=${p.drop ? 'var(--surface)' : SERIES[k]}
-            stroke=${p.drop ? SERIES[k] : 'var(--surface)'} stroke-width="2" />`))}
+            stroke=${p.drop ? SERIES[k] : 'var(--surface)'} stroke-width=${ringW} />`))}
         ${lastLabels.map((l) => html`
           <text x=${W - mR + 8} y=${l.y + 3.5} font-size="10" fill="var(--text)"
             style="font-variant-numeric:tabular-nums">${l.w}</text>`)}
@@ -129,10 +165,20 @@ export function ProgressChart({ ex }) {
             onClick=${() => setSel(sel === i ? null : i)} />`)}
       </svg>
       <div class="hint" style="margin:6px 2px 0">
-        Tap a session for details.${state.completionsFor(ex.id).length > MAX_SESSIONS
-          ? ` Showing last ${MAX_SESSIONS} sessions.` : ''}
+        Tap a session for details.
         ${sessions.some((s) => s.v.sets.some((st) => st.isDropSet)) ? ' Hollow dots = drop sets.' : ''}
       </div>
+    </div>`;
+}
+
+// Range picker row; hidden while every session already fits the default view.
+function RangeRow({ all, rangeKey, onPick }) {
+  if (all.length <= MAX_SESSIONS) return null;
+  return html`
+    <div class="seg-row">
+      ${RANGES.map((r) => html`
+        <button key=${r.key} class=${`seg${rangeKey === r.key ? ' on' : ''}`}
+          onClick=${() => onPick(r.key)}>${r.label}</button>`)}
     </div>`;
 }
 

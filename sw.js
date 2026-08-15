@@ -1,7 +1,7 @@
 // Precache-all, cache-first service worker. Bump CACHE on every deploy —
 // that's the entire update mechanism (new SW installs, old cache is dropped,
 // change is live on the next launch).
-const CACHE = 'lifting-notes-v3';
+const CACHE = 'lifting-notes-v4';
 
 const ASSETS = [
   './',
