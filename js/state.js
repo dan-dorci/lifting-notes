@@ -258,6 +258,18 @@ export function removeFromDay(dayId, exId) {
   });
 }
 
+// Replace a day's order with the given ids; ids not in the day are ignored,
+// ids missing from the list are appended (safety against stale drag state).
+export function reorderDay(dayId, orderedIds) {
+  mutate(() => {
+    const d = getDay(dayId);
+    const valid = new Set(d.exerciseIds);
+    const next = orderedIds.filter((id) => valid.has(id));
+    const seen = new Set(next);
+    d.exerciseIds = [...next, ...d.exerciseIds.filter((id) => !seen.has(id))];
+  });
+}
+
 export function moveInDay(dayId, exId, delta) {
   mutate(() => {
     const ids = getDay(dayId).exerciseIds;

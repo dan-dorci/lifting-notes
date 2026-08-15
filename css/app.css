@@ -119,6 +119,20 @@ button:active, .btn:active { opacity: 0.6; }
 }
 .card:active { background: var(--surface-2); }
 
+/* Drag-to-reorder */
+.card.draggable {
+  -webkit-touch-callout: none;  /* no iOS link preview on long-press */
+  -webkit-user-select: none;
+  user-select: none;
+}
+.card.lifting {
+  transform: scale(1.02);
+  border-color: var(--accent);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  position: relative;
+  z-index: 5;
+}
+
 .row {
   display: flex;
   align-items: center;

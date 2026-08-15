@@ -1,12 +1,19 @@
-import { html, useState, TopBar, navigate, setsSummary } from '../ui.js';
+import { html, useState, useRef, TopBar, navigate, setsSummary } from '../ui.js';
 import * as state from '../state.js';
+import { useLongPressReorder } from '../dnd.js';
 
-function ExerciseRow({ ex, editing, dayId, index, count }) {
+function ExerciseRow({ ex, editing, dayId, lifted, rowRef, onPointerDown, onClickGuard }) {
   const cur = state.currentVersion(ex);
   const alts = state.altSiblings(ex);
   const done = state.groupCompletedToday(ex);
+  const click = (e) => {
+    onClickGuard(e);
+    if (editing) e.preventDefault();
+  };
   return html`
-    <a class="card" href=${editing ? null : `#/ex/${ex.id}`} onClick=${editing ? (e) => e.preventDefault() : null}>
+    <a class=${`card draggable${lifted ? ' lifting' : ''}`}
+      href=${`#/ex/${ex.id}`} ref=${rowRef}
+      onPointerDown=${onPointerDown} onClick=${click}>
       <div class="row">
         <div class="grow">
           <div class="ex-name">${cur.name}</div>
@@ -15,28 +22,40 @@ function ExerciseRow({ ex, editing, dayId, index, count }) {
         ${!editing && alts.length > 0 && html`<span class="badge alt">${alts.length} ALT</span>`}
         ${!editing && done && html`<span class="dot-done">✓</span>`}
         ${editing && html`
-          <button class="icon-btn" disabled=${index === 0}
-            onClick=${() => state.moveInDay(dayId, ex.id, -1)}>▲</button>
-          <button class="icon-btn" disabled=${index === count - 1}
-            onClick=${() => state.moveInDay(dayId, ex.id, 1)}>▼</button>
-          <button class="icon-btn danger" onClick=${() => state.removeFromDay(dayId, ex.id)}>✕</button>`}
+          <button class="icon-btn danger"
+            onPointerDown=${(e) => e.stopPropagation()}
+            onClick=${(e) => { e.preventDefault(); state.removeFromDay(dayId, ex.id); }}>✕</button>`}
       </div>
     </a>`;
 }
 
 export function DayView({ dayId }) {
   const [editing, setEditing] = useState(false);
+  const screenRef = useRef(null);
   const day = state.getDay(dayId);
+
+  const dnd = useLongPressReorder({
+    getIds: () => state.getDay(dayId).exerciseIds,
+    onCommit: (ids) => state.reorderDay(dayId, ids),
+    scrollEl: () => screenRef.current,
+  });
+
   if (!day) return html`<div class="empty">Day not found.</div>`;
-  const exs = day.exerciseIds.map(state.getExercise).filter((e) => e && (!e.archived || editing));
+  const orderedIds = dnd.order || day.exerciseIds;
+  const exs = orderedIds.map(state.getExercise).filter((e) => e && (!e.archived || editing));
+
   return html`
     <${TopBar} title=${day.name} back="/"
       right=${html`<button onClick=${() => setEditing(!editing)}>${editing ? 'Done' : 'Edit'}</button>`} />
-    <div class="screen">
+    <div class="screen" ref=${screenRef}>
       ${exs.length === 0 && html`<div class="empty">No exercises yet.</div>`}
-      ${exs.map((ex, i) => html`
-        <${ExerciseRow} key=${ex.id} ex=${ex} editing=${editing}
-          dayId=${dayId} index=${i} count=${exs.length} />`)}
+      ${exs.map((ex) => html`
+        <${ExerciseRow} key=${ex.id} ex=${ex} editing=${editing} dayId=${dayId}
+          lifted=${dnd.dragId === ex.id}
+          rowRef=${dnd.rowRef(ex.id)}
+          onPointerDown=${dnd.onPointerDown(ex.id)}
+          onClickGuard=${dnd.onClickGuard} />`)}
+      ${exs.length > 1 && html`<div class="hint">Hold a cell, then drag to reorder.</div>`}
       ${editing && html`
         <button class="btn-solid" onClick=${() => navigate(`/day/${dayId}/add`)}>+ Add exercise</button>`}
     </div>`;
