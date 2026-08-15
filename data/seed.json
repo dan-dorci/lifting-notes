@@ -1,0 +1,12 @@
+{
+ "schemaVersion": 1,
+ "rev": 1,
+ "days": [
+  { "id": "pull", "name": "Pull", "order": 0, "exerciseIds": [] },
+  { "id": "push", "name": "Push", "order": 1, "exerciseIds": [] },
+  { "id": "legs", "name": "Legs", "order": 2, "exerciseIds": [] },
+  { "id": "therapy", "name": "Therapy", "order": 3, "exerciseIds": [] }
+ ],
+ "exercises": [],
+ "completions": []
+}

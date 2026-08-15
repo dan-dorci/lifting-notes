@@ -1,0 +1,6 @@
+{
+  "name": "lifting-notes",
+  "private": true,
+  "type": "module",
+  "description": "Personal offline-first lifting notes PWA"
+}
