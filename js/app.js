@@ -11,7 +11,7 @@ import { Settings } from './views/Settings.js';
 function BackupBanner({ onDismiss }) {
   const [busy, setBusy] = useState(false);
   return html`
-    <div class="banner">
+    <div class="banner banner-top">
       <div class="grow">Backup is stale — save your data to Files.</div>
       <button class="btn-quiet" disabled=${busy} onClick=${async () => {
         setBusy(true);
