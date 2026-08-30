@@ -1,4 +1,4 @@
-import { html, useState, useRef, TopBar, navigate, setsSummary } from '../ui.js';
+import { html, useState, useRef, TopBar, navigate, goBack, replaceNav, setsSummary } from '../ui.js';
 import * as state from '../state.js';
 import { useLongPressReorder } from '../dnd.js';
 
@@ -72,7 +72,8 @@ export function DayAddPicker({ dayId }) {
     const n = name.trim();
     if (!n) return;
     const id = state.createExercise({ name: n, dayId });
-    navigate(`/ex/${id}/edit`);
+    // Replace the picker in history so Back from the editor skips it.
+    replaceNav(`/ex/${id}/edit`);
   };
   return html`
     <${TopBar} title="Add to ${day.name}" back=${`/day/${dayId}`} />
@@ -88,7 +89,7 @@ export function DayAddPicker({ dayId }) {
         <div class="section">Existing exercises</div>
         ${candidates.map((ex) => html`
           <a class="card" key=${ex.id} href="#"
-            onClick=${(e) => { e.preventDefault(); state.addToDay(dayId, ex.id); navigate(`/day/${dayId}`); }}>
+            onClick=${(e) => { e.preventDefault(); state.addToDay(dayId, ex.id); goBack(`/day/${dayId}`); }}>
             <div class="row">
               <div class="grow">
                 <div class="ex-name">${state.exName(ex)}</div>

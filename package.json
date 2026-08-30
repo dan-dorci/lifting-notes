@@ -2,5 +2,11 @@
   "name": "lifting-notes",
   "private": true,
   "type": "module",
-  "description": "Personal offline-first lifting notes PWA"
+  "description": "Personal offline-first lifting notes PWA",
+  "scripts": {
+    "test": "node tests/test-state.mjs && node tests/test-render.mjs"
+  },
+  "devDependencies": {
+    "jsdom": "^25.0.0"
+  }
 }

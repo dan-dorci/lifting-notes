@@ -118,18 +118,19 @@ function versionHasCompletions(vId) {
 // newSets: [{id?, weight, microPlate, repMin, repMax, isDropSet}] — sets carried
 // over unchanged keep their id (so ✅ marks survive); edited/new sets get fresh ids.
 export function updatePrescription(exId, name, newSets) {
+  const sets = newSets.map((s) => ({
+    id: s.id || uid('set'),
+    weight: Number(s.weight) || 0,
+    microPlate: !!s.microPlate,
+    repMin: Number(s.repMin) || 0,
+    repMax: Number(s.repMax) || 0,
+    isDropSet: !!s.isDropSet,
+  }));
+  const before = currentVersion(getExercise(exId));
+  if (before.name === name && setsEqual(before.sets, sets)) return; // true no-op: no rev bump
   mutate(() => {
     const ex = getExercise(exId);
     const cur = currentVersion(ex);
-    const sets = newSets.map((s) => ({
-      id: s.id || uid('set'),
-      weight: Number(s.weight) || 0,
-      microPlate: !!s.microPlate,
-      repMin: Number(s.repMin) || 0,
-      repMax: Number(s.repMax) || 0,
-      isDropSet: !!s.isDropSet,
-    }));
-    if (cur.name === name && setsEqual(cur.sets, sets)) return; // no-op
     if (!versionHasCompletions(cur.id)) {
       // Nothing logged against it — edit in place, no orphan version.
       cur.name = name;

@@ -1,4 +1,4 @@
-import { html, useState, TopBar, navigate, setsSummary } from '../ui.js';
+import { html, useState, TopBar, navigate, goBack, setsSummary } from '../ui.js';
 import * as state from '../state.js';
 
 const blankSet = () => ({ id: null, weight: 0, microPlate: false, repMin: 8, repMax: 12, isDropSet: false });
@@ -38,7 +38,7 @@ export function ExerciseEdit({ exId }) {
   const save = () => {
     state.updatePrescription(ex.id, name.trim() || cur.name, sets);
     state.updateNotes(ex.id, setupNotes.trim(), notes.trim());
-    navigate(`/ex/${ex.id}`);
+    goBack(`/ex/${ex.id}`);
   };
 
   const changeSet = (i, next) => setSets(sets.map((s, j) => (j === i ? next : s)));
@@ -123,7 +123,7 @@ export function LinkAltPicker({ exId }) {
       <div class="hint">The linked exercise becomes an alternative of “${state.exName(ex)}”.</div>
       ${candidates.map((c) => html`
         <a class="card" key=${c.id} href="#"
-          onClick=${(e) => { e.preventDefault(); state.joinAltGroup(ex.id, c.id); navigate(`/ex/${exId}/edit`); }}>
+          onClick=${(e) => { e.preventDefault(); state.joinAltGroup(ex.id, c.id); goBack(`/ex/${exId}/edit`); }}>
           <div class="ex-name">${state.exName(c)}</div>
           <div class="ex-sub">${setsSummary(state.currentVersion(c))}</div>
         </a>`)}

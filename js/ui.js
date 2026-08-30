@@ -6,6 +6,31 @@ import { html } from '../vendor/standalone.mjs';
 
 export function navigate(hash) { location.hash = hash; }
 
+// Real-history back navigation. We track how deep the user has gone within
+// the app so Back returns to the actual previous screen; the fallback only
+// fires on a fresh launch straight into a deep screen.
+let navDepth = 0;
+let popping = false;
+let replacing = false;
+
+window.addEventListener('hashchange', () => {
+  if (popping) { popping = false; navDepth = Math.max(0, navDepth - 1); }
+  else if (replacing) { replacing = false; }
+  else navDepth++;
+});
+
+export function goBack(fallback = '/') {
+  if (navDepth > 0) { popping = true; window.history.back(); }
+  else navigate(fallback);
+}
+
+// Navigate without creating a history entry (replaces the current screen) —
+// for transient screens like pickers that Back should skip over.
+export function replaceNav(hash) {
+  replacing = true;
+  location.replace(`#${hash}`);
+}
+
 export function parseRoute() {
   const parts = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean);
   const [a, b, c] = parts;
@@ -57,7 +82,7 @@ export function TopBar({ title, back, right }) {
   return html`
     <div class="topbar">
       <div class="side">
-        ${back != null && html`<button onClick=${() => navigate(back)}>‹ Back</button>`}
+        ${back != null && html`<button onClick=${() => goBack(back)}>‹ Back</button>`}
       </div>
       <h1>${title}</h1>
       <div class="side right">${right}</div>
