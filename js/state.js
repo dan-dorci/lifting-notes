@@ -299,6 +299,48 @@ export function logCompletion(exId) {
   });
 }
 
+// Exact-rep logging. Entering reps for a set IS the completion signal: the
+// first entry today creates the completion record, further entries attach to
+// it. Exact reps are stored for the data/export only — the UI never shows
+// them for past sessions. n = null clears the set's entry.
+export function logSetReps(exId, setId, n) {
+  mutate(() => {
+    const ex = getExercise(exId);
+    let c = completedToday(exId);
+    if (!c) {
+      if (n == null) return;
+      c = {
+        id: uid('cmp'),
+        exerciseId: exId,
+        versionId: currentVersion(ex).id,
+        completedAt: new Date().toISOString(),
+        reps: {},
+      };
+      doc.completions.push(c);
+    }
+    if (!c.reps) c.reps = {};
+    if (n == null) {
+      delete c.reps[setId];
+      if (Object.keys(c.reps).length === 0) {
+        doc.completions = doc.completions.filter((x) => x.id !== c.id);
+      }
+    } else {
+      c.reps[setId] = n;
+      // Hitting the top of the range auto-marks the ✅.
+      const set = currentVersion(ex).sets.find((s) => s.id === setId);
+      if (set && n >= set.repMax && !ex.hitTopSetIds.includes(setId)) {
+        ex.hitTopSetIds.push(setId);
+      }
+    }
+  });
+}
+
+// Today's entered reps only ({setId: n}) — past sessions' reps stay UI-hidden.
+export function todayReps(exId) {
+  const c = completedToday(exId);
+  return (c && c.reps) || {};
+}
+
 export function undoCompletion(cmpId) {
   mutate(() => {
     doc.completions = doc.completions.filter((c) => c.id !== cmpId);

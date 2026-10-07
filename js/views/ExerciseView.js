@@ -2,8 +2,12 @@ import { html, TopBar, navigate, setsSummary, fmtReps, fmtTime } from '../ui.js'
 import * as state from '../state.js';
 import { ProgressChart, ProgressLog } from './ProgressChart.js';
 
-function SetRow({ ex, set }) {
+function SetRow({ ex, set, entered }) {
   const hit = ex.hitTopSetIds.includes(set.id);
+  const commit = (e) => {
+    const v = e.target.value.trim();
+    state.logSetReps(ex.id, set.id, v === '' ? null : Math.max(0, Math.round(Number(v)) || 0));
+  };
   return html`
     <div class=${`set-row${set.isDropSet ? ' drop' : ''}`}>
       <div class="set-weight">${set.weight}${set.microPlate && html`<span class="micro">$</span>`}</div>
@@ -11,6 +15,9 @@ function SetRow({ ex, set }) {
         ${fmtReps(set)} reps
         ${set.isDropSet && html` <span class="set-drop-tag">DROP — no rest</span>`}
       </div>
+      <input class=${`rep-input${entered != null ? ' got' : ''}`} type="number"
+        inputmode="numeric" placeholder="—" aria-label="reps done"
+        value=${entered ?? ''} onChange=${commit} />
       <button class=${`check${hit ? ' on' : ''}`} aria-label="hit top of range"
         onClick=${() => state.toggleHitTop(ex.id, set.id)}>✓</button>
     </div>`;
@@ -22,6 +29,8 @@ export function ExerciseView({ exId }) {
   const cur = state.currentVersion(ex);
   const alts = state.altSiblings(ex);
   const doneToday = state.completedToday(ex.id);
+  const entered = state.todayReps(ex.id);
+  const nEntered = cur.sets.filter((s) => entered[s.id] != null).length;
   const allHit = cur.sets.length > 0 && cur.sets.every((s) => ex.hitTopSetIds.includes(s.id));
 
   // Back target: the day containing this exercise, else library.
@@ -35,20 +44,25 @@ export function ExerciseView({ exId }) {
       ${ex.archived && html`<div class="banner">This exercise is archived.</div>`}
 
       <div class="sets">
-        ${cur.sets.map((s) => html`<${SetRow} key=${s.id} ex=${ex} set=${s} />`)}
+        ${cur.sets.map((s) => html`
+          <${SetRow} key=${s.id} ex=${ex} set=${s} entered=${entered[s.id]} />`)}
       </div>
       <div class="hint">
-        Tap ✓ when a set hits the top of its rep range.
+        Enter the reps you hit as you finish each set — that logs the session.
+        Top of the range marks ✓ automatically.
         ${allHit && html`<b> All sets hit — time to raise the weight.</b>`}
       </div>
 
-      ${doneToday
-        ? html`
-          <button class="btn-solid done" onClick=${() => state.undoCompletion(doneToday.id)}>
-            ✓ Completed at ${fmtTime(doneToday.completedAt)} — tap to undo
-          </button>`
-        : html`
-          <button class="btn-solid" onClick=${() => state.logCompletion(ex.id)}>Completed</button>`}
+      ${doneToday && html`
+        <div class="today-status">
+          <span class="grow">
+            ✓ ${nEntered}/${cur.sets.length} sets logged today
+            (started ${fmtTime(doneToday.completedAt)})
+          </span>
+          <button class="btn-quiet btn-danger"
+            onClick=${() => confirm('Clear everything logged today for this exercise?')
+              && state.undoCompletion(doneToday.id)}>Clear</button>
+        </div>`}
 
       ${ex.setupNotes && html`
         <div class="notes-block" style="margin-top:14px">

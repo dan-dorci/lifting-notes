@@ -78,6 +78,22 @@ state.reorderDay('pull', ['bogus_id', ...reversed]);
 assert(day.exerciseIds.length === reversed.length && !day.exerciseIds.includes('bogus_id'),
   'reorderDay ignores unknown ids');
 
+// --- exact rep logging ---
+const curl = state.getExercise('ex_curl');
+state.logSetReps(curl.id, 's_c1', 11);
+let c = state.completedToday(curl.id);
+assert(c != null, 'first rep entry creates completion');
+assert(c.reps['s_c1'] === 11, 'reps stored on completion');
+assert(!curl.hitTopSetIds.includes('s_c1'), '11 < repMax 12: no auto-✅');
+state.logSetReps(curl.id, 's_c2', 12);
+assert(curl.hitTopSetIds.includes('s_c2'), 'repMax hit auto-marks ✅');
+assert(state.completedToday(curl.id).id === c.id, 'second entry reuses completion');
+assert(Object.keys(state.todayReps(curl.id)).length === 2, 'todayReps returns both');
+state.logSetReps(curl.id, 's_c1', null);
+assert(state.todayReps(curl.id)['s_c1'] === undefined, 'null clears an entry');
+state.logSetReps(curl.id, 's_c2', null);
+assert(state.completedToday(curl.id) == null, 'clearing last entry removes completion');
+
 // --- undo ---
 const todays = state.completedToday(ex.id);
 const n = state.completionsFor(ex.id).length;

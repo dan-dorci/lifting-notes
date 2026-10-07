@@ -189,6 +189,31 @@ button:active, .btn:active { opacity: 0.6; }
 .set-reps { color: var(--text-dim); font-size: 15px; flex: 1; }
 .set-drop-tag { font-size: 11px; color: var(--amber); }
 
+.rep-input {
+  width: 58px;
+  text-align: center;
+  padding: 8px 4px;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.rep-input::placeholder { color: var(--text-dim); }
+.rep-input.got {
+  border-color: var(--green);
+  background: color-mix(in srgb, var(--green) 12%, var(--surface-2));
+}
+
+.today-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: color-mix(in srgb, var(--green) 14%, var(--surface));
+  border: 1px solid var(--green);
+  border-radius: var(--radius);
+  padding: 8px 8px 8px 14px;
+  font-size: 14.5px;
+}
+.today-status .grow { flex: 1; }
+
 .check {
   width: 34px;
   height: 34px;

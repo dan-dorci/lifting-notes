@@ -49,25 +49,45 @@ assert(text().includes('1 ALT'), 'ALT badge rendered');
 const ex = state.getExercise('ex_row');
 nav(`#/ex/${ex.id}`);
 await sleep(120);
-assert(text().includes('Completed'), 'exercise view has Completed button');
+assert(document.querySelectorAll('.rep-input').length === 3, 'rep input per set');
 assert(text().includes('Plate row'), 'alternatives listed');
 assert(text().includes('No completions yet'), 'empty history hint');
 
-// Log a completion via the button
-[...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Completed').click();
-await sleep(100);
-assert(text().includes('tap to undo'), 'completion logged via UI');
-assert(state.completionsFor(ex.id).length === 1, 'completion in state');
+// Entering reps IS the completion: first entry creates the log record
+const repInput = (i) => document.querySelectorAll('.rep-input')[i];
+const enterReps = async (i, v) => {
+  repInput(i).value = v;
+  repInput(i).dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+  await sleep(100);
+};
+await enterReps(0, '10');
+assert(state.completionsFor(ex.id).length === 1, 'rep entry creates completion');
+assert(text().includes('1/3 sets logged today'), 'status shows per-set progress');
+assert(document.querySelectorAll('.rep-input.got').length === 1, 'entered set styled as logged');
+assert(state.completionsFor(ex.id)[0].reps['s_r1'] === 10, 'exact reps stored in completion');
 
-// ✅ toggle via UI (set 1 is seeded ✅ on — clicking flips it off, then back)
+// Hitting top of range auto-marks ✅ (s_r2 has repMax 12, not pre-marked)
+await enterReps(1, '12');
+assert(ex.hitTopSetIds.includes('s_r2'), 'top-of-range entry auto-marks ✅');
+assert(text().includes('2/3 sets logged today'), 'status updates');
+
+// Clearing an entry removes it; clearing the last removes the completion
+await enterReps(1, '');
+assert(state.completionsFor(ex.id)[0].reps['s_r2'] === undefined, 'cleared entry removed');
+await enterReps(0, '');
+assert(state.completionsFor(ex.id).length === 0, 'clearing last entry removes completion');
+await enterReps(0, '10'); // leave one logged for the tests below
+
+// Manual ✅ toggle still works (s_r1 seeded on; s_r2 auto-marked above and
+// deliberately NOT un-marked when its rep entry was cleared)
 const onBefore = document.querySelectorAll('.check.on').length;
-assert(onBefore === 1, 'seeded ✅ renders');
+assert(onBefore === 2, 'seeded + auto-marked ✅ render');
 document.querySelector('.check').click();
 await sleep(80);
-assert(document.querySelectorAll('.check.on').length === 0, '✅ toggle flips off');
+assert(document.querySelectorAll('.check.on').length === onBefore - 1, '✅ toggle flips off');
 document.querySelector('.check').click();
 await sleep(80);
-assert(document.querySelectorAll('.check.on').length === 1, '✅ toggle flips back on');
+assert(document.querySelectorAll('.check.on').length === onBefore, '✅ toggle flips back on');
 
 // Progression: edit set 2 (+5) → new version; 2 more sessions → chart + eras
 const cur = state.currentVersion(ex);
@@ -86,6 +106,18 @@ const hitRects = [...document.querySelectorAll('svg rect')];
 hitRects[hitRects.length - 1].dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
 await sleep(80);
 assert(document.querySelector('.chart-detail') != null, 'tapping a session shows detail card');
+
+// Past sessions' exact reps are hidden: backdate everything by a day,
+// remount — inputs must be empty even though reps are in the data.
+state.getDoc().completions.filter((c) => c.exerciseId === ex.id).forEach((c) => {
+  c.completedAt = new Date(Date.now() - 86400000).toISOString();
+});
+nav('#/'); await sleep(80);
+nav(`#/ex/${ex.id}`); await sleep(120);
+assert(document.querySelectorAll('.rep-input.got').length === 0, 'past reps not shown as entered');
+assert([...document.querySelectorAll('.rep-input')].every((i) => i.value === ''), 'rep inputs empty next day');
+assert(state.getDoc().completions.some((c) => c.reps && c.reps['s_r1'] === 10),
+  'exact reps still in data for export');
 
 // Range picker: 40 weekly sessions on hamstring curls
 for (let i = 0; i < 40; i++) state.logCompletion('ex_ham');
