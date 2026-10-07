@@ -15,7 +15,7 @@ function SetRow({ ex, set, entered }) {
         ${fmtReps(set)} reps
         ${set.isDropSet && html` <span class="set-drop-tag">DROP — no rest</span>`}
       </div>
-      <input class=${`rep-input${entered != null ? ' got' : ''}`} type="number"
+      <input class=${`rep-input${entered == null ? '' : entered < set.repMin ? ' got under' : ' got'}`} type="number"
         inputmode="numeric" placeholder="—" aria-label="reps done"
         value=${entered ?? ''} onChange=${commit} />
       <button class=${`check${hit ? ' on' : ''}`} aria-label="hit top of range"

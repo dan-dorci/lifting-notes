@@ -201,6 +201,10 @@ button:active, .btn:active { opacity: 0.6; }
   border-color: var(--green);
   background: color-mix(in srgb, var(--green) 12%, var(--surface-2));
 }
+.rep-input.got.under {
+  border-color: var(--amber);
+  background: color-mix(in srgb, var(--amber) 14%, var(--surface-2));
+}
 
 .today-status {
   display: flex;

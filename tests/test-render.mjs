@@ -64,7 +64,15 @@ await enterReps(0, '10');
 assert(state.completionsFor(ex.id).length === 1, 'rep entry creates completion');
 assert(text().includes('1/3 sets logged today'), 'status shows per-set progress');
 assert(document.querySelectorAll('.rep-input.got').length === 1, 'entered set styled as logged');
+assert(document.querySelectorAll('.rep-input.under').length === 0, 'in-range entry not amber');
 assert(state.completionsFor(ex.id)[0].reps['s_r1'] === 10, 'exact reps stored in completion');
+
+// Below the rep range flags amber (repMin is 8)
+await enterReps(2, '6');
+assert(document.querySelectorAll('.rep-input.under').length === 1, 'under-range entry flagged amber');
+await enterReps(2, '8');
+assert(document.querySelectorAll('.rep-input.under').length === 0, 'bottom of range clears amber');
+await enterReps(2, '');
 
 // Hitting top of range auto-marks ✅ (s_r2 has repMax 12, not pre-marked)
 await enterReps(1, '12');
