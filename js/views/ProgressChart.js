@@ -130,11 +130,16 @@ export function ProgressChart({ ex }) {
       ${sel != null && html`
         <div class="chart-detail">
           <b>${fmtDate(sessions[sel].c.completedAt)}</b>
-          ${sessions[sel].v.sets.map((st, k) => html`
-            <span class="chart-detail-set" key=${k}>
-              <span class="chip-dot" style=${`background:${SERIES[Math.min(k, MAX_SETS - 1)]}`}></span>
-              ${fmtWeight(st)}×${fmtReps(st)}${st.isDropSet ? '↓' : ''}
-            </span>`)}
+          ${sessions[sel].v.sets.map((st, k) => {
+            // Exact reps surface only here, in the deliberate drill-down.
+            const actual = sessions[sel].c.reps?.[st.id];
+            return html`
+              <span class="chart-detail-set" key=${k}>
+                <span class="chip-dot" style=${`background:${SERIES[Math.min(k, MAX_SETS - 1)]}`}></span>
+                ${fmtWeight(st)}×${fmtReps(st)}${st.isDropSet ? '↓' : ''}
+                ${actual != null && html`<span class="actual-reps">did ${actual}</span>`}
+              </span>`;
+          })}
         </div>`}
       <svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block" role="img"
         aria-label="Weight per set over the last ${sessions.length} sessions">

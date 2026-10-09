@@ -324,6 +324,14 @@ button:active, .btn:active { opacity: 0.6; }
   gap: 5px;
   font-variant-numeric: tabular-nums;
 }
+.actual-reps {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--green);
+  background: color-mix(in srgb, var(--green) 16%, transparent);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
 .era { border-bottom: 1px solid var(--border); padding: 2px 0; }
 .era-diff {
   font-size: 12.5px;

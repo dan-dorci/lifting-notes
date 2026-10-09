@@ -114,6 +114,13 @@ const hitRects = [...document.querySelectorAll('svg rect')];
 hitRects[hitRects.length - 1].dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
 await sleep(80);
 assert(document.querySelector('.chart-detail') != null, 'tapping a session shows detail card');
+assert(document.querySelector('.actual-reps') == null, 'rep-less legacy session shows no did-badge');
+// Oldest session is the one logged via rep entry (did 10 on set 1)
+hitRects[0].dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+await sleep(80);
+assert(text().includes('did 10'), 'chart drill-down reveals exact reps');
+assert([...document.querySelectorAll('.set-row')].every((r) => !r.textContent.includes('did')),
+  'main set rows never show exact reps');
 
 // Past sessions' exact reps are hidden: backdate everything by a day,
 // remount — inputs must be empty even though reps are in the data.
